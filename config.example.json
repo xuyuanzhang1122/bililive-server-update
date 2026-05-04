@@ -1,0 +1,10 @@
+{
+  "env": {
+    "BLSU_ADDR": ":8090",
+    "BLSU_DATA_DIR": "./data",
+    "BLSU_ADMIN_TOKEN": "change-me",
+    "BLSU_PUBLIC_BASE_URL": "https://update.example.com",
+    "BLSU_GITHUB_REPO": "xuyuanzhang1122/bililive-go-UI"
+  }
+}
+
