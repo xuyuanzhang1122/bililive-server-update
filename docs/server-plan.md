@@ -43,6 +43,19 @@
 | 统一 curl 安装部署 | 本项目提供 manifest、catalog、doctor 响应格式、安装脚本入口 |
 | iOS 导出/备份/找回 | 本项目实现备份上传、下载、恢复计划；主服务需要本机恢复 API/tool 执行写配置和重启 |
 
+## 2.1 iOS 当前备份接口差异
+
+iOS 端当前文档使用：
+
+- `POST /api/backups`
+- `GET /api/backups/{id}`
+- `POST /api/backups/restore`
+- `GET /api/backups/restore/status/{job_id}`
+
+本项目已经兼容 `POST /api/backups` 和 `GET /api/backups/{id}`，用于公网源服务器保存/取回 iOS backup package。
+
+`POST /api/backups/restore` 和 restore status 不能由公网源服务器真正执行，因为恢复需要写用户机器上的 `config.yml` 并重启 `bililive-go`。这两个接口应在 `bililive-go-UI` 主服务或本机管理工具中实现。
+
 ## 3. 主服务建议新增字段
 
 ### `GET /api/video-files/{folder}`
@@ -102,4 +115,3 @@ iOS 从本项目拿到备份后，真正写 `config.yml`、改端口、恢复 `l
 - `POST /api/local/restart`
 
 这些接口必须要求管理员 Key，且只能在本机或同源 Web UI 中启用。
-

@@ -43,6 +43,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/backups", s.createBackup)
 	s.mux.HandleFunc("GET /api/v1/backups/{id}", s.getBackup)
 	s.mux.HandleFunc("POST /api/v1/backups/{id}/restore-request", s.restoreRequest)
+	s.mux.HandleFunc("POST /api/backups", s.createIOSBackup)
+	s.mux.HandleFunc("GET /api/backups/{id}", s.getIOSBackup)
+	s.mux.HandleFunc("POST /api/backups/restore", s.restoreIOSBackup)
+	s.mux.HandleFunc("GET /api/backups/restore/status/{job_id}", s.restoreIOSBackupStatus)
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
@@ -283,6 +287,51 @@ func (s *Server) restoreRequest(w http.ResponseWriter, r *http.Request) {
 			"检查通过后重启 bililive-go-UI 服务",
 			"iOS/Web 轮询 /api/info 和 /api/lives 完成双端同步",
 		},
+	})
+}
+
+func (s *Server) createIOSBackup(w http.ResponseWriter, r *http.Request) {
+	var pkg model.IOSBackupPackage
+	if err := decodeJSON(r.Body, &pkg); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	id, createdAt, err := s.store.SaveIOSBackup(pkg)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, model.BackupCreateResponse{
+		ID:        id,
+		CreatedAt: createdAt,
+	})
+}
+
+func (s *Server) getIOSBackup(w http.ResponseWriter, r *http.Request) {
+	pkg, err := s.store.LoadIOSBackup(r.PathValue("id"))
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, store.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		writeError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, pkg)
+}
+
+func (s *Server) restoreIOSBackup(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusMethodNotAllowed, map[string]string{
+		"status":  "failed",
+		"message": "此公网源服务只负责存取备份；写入 config.yml、重启 bililive-go 必须由当前 bililive-go 服务器实现 /api/backups/restore",
+	})
+}
+
+func (s *Server) restoreIOSBackupStatus(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusNotFound, map[string]string{
+		"status":  "failed",
+		"job_id":  r.PathValue("job_id"),
+		"message": "此服务不执行本机恢复任务，因此没有 restore job 状态",
 	})
 }
 

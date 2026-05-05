@@ -389,3 +389,91 @@ iOS 需要把 `id` 展示给用户。
 }
 ```
 
+## 4. iOS 当前备份接口兼容
+
+iOS 当前文档 `/Users/xu/Documents/GitHub/bililive-ios/Docs/backend-backup-restore-api.md` 使用的是主服务路径 `/api/backups`，包结构也更贴近 iOS 本地导出文件。
+
+本项目已兼容其中的“公网备份存取”部分：
+
+### `POST /api/backups`
+
+请求即 iOS backup package：
+
+```json
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-05-04T08:00:00Z",
+  "iosConfig": {
+    "serverURL": "http://192.168.1.10:8080",
+    "lanURL": "http://192.168.1.10:8080",
+    "publicURL": "https://example.com",
+    "autoSwitchNetwork": true
+  },
+  "server": {
+    "rpc_bind": ":8080",
+    "out_put_path": "./recordings",
+    "app_data_path": ".appdata",
+    "live_rooms": [
+      {
+        "url": "https://live.douyin.com/810339218646",
+        "is_listening": false
+      }
+    ]
+  }
+}
+```
+
+响应：
+
+```json
+{
+  "id": "bgo_20260505_abcd1234",
+  "created_at": "2026-05-04T08:00:00Z"
+}
+```
+
+### `GET /api/backups/{id}`
+
+返回原始 iOS backup package JSON。
+
+### `POST /api/backups/restore`
+
+本项目会返回 `405`，原因是公网源服务不能直接写用户机器的 `config.yml` 或重启 `bililive-go`。iOS 当前分支会把 `404/405` 展示为“当前服务器暂不支持备份接口”。
+
+这个接口必须在当前 `bililive-go-UI` 主服务或本机管理工具中实现。主服务需要按 iOS 文档完成：
+
+- 校验 `schemaVersion`
+- 校验 `rpc_bind`、`out_put_path`、`app_data_path`
+- 写入恢复后的服务端配置和 `live_rooms`
+- 必要时重启或 reload `bililive-go`
+- 返回 `pending/running/restarting/completed/failed` 状态
+
+### `GET /api/backups/restore/status/{job_id}`
+
+同上，真正的任务状态只能由执行恢复的主服务返回。本项目返回 `404`。
+
+### 已检查的当前分支
+
+`bililive-go-UI` 的 `feature/web-main-service-integration` 分支已经出现这些主服务实现：
+
+- `src/servers/backup_handler.go`
+  - `POST /api/backups`
+  - `GET /api/backups/{id}`
+  - `POST /api/backups/restore`
+  - `GET /api/backups/restore/status/{job_id}`
+- `src/servers/local_handler.go`
+  - `POST /api/local/doctor`
+  - `POST /api/local/restart`
+- `src/servers/headless_config_handler.go`
+  - `GET/PATCH /api/config/headless-browser`
+  - `GET/PUT /api/config/douyin-cookie`
+  - `POST /api/tools/headless-browser/probe`
+
+`bililive-ios` 的 `fix/ios-playback-sync-backup` 分支当前调用：
+
+- `POST /api/backups`
+- `GET /api/backups/{id}`
+- `POST /api/backups/restore`
+- `GET /api/backups/restore/status/{job_id}`
+
+所以本项目的适配重点是兼容远端备份存取；真实恢复由主服务分支执行。

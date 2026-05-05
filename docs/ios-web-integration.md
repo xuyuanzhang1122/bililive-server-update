@@ -33,12 +33,13 @@
   - `GET /api/config` 或 `GET /api/raw-config`
   - `GET /api/lives`
 - 本地生成一份可分享文件。
-- 同时 `POST /api/v1/backups` 上传到本项目。
+- 同时 `POST /api/backups` 上传到远端备份服务或当前主服务。
 - 展示返回的 `id`。
 - 找回时：
-  - 输入 ID 调 `GET /api/v1/backups/{id}`。
+  - 输入 ID 调 `GET /api/backups/{id}`。
   - 上传本地备份文件时直接解析。
-  - 调用户服务器的 `/api/local/restore-config` 执行恢复。
+  - 调用户服务器的 `POST /api/backups/restore` 执行恢复。
+  - 如果返回 `job_id`，轮询 `GET /api/backups/restore/status/{job_id}`。
   - 轮询 `/api/info` 和 `/api/lives` 等待重启完成。
 
 ## Web
@@ -67,5 +68,12 @@
 - 修复直播结束后 `/api/video-library` 的 `recording` 不自动变 false。
 - 给短链解析接入无头浏览器 fallback。
 - 添加 headless browser 和 Douyin Cookie 配置 API。
-- 添加本机 doctor/restore/restart API，供 iOS 找回配置后自动恢复。
+- 添加本机 doctor/restart API，供安装器和恢复流程检测。
+- 添加 `/api/backups/restore` 与 restore status，供 iOS 找回配置后自动恢复。
 
+当前已检查分支：
+
+- Web/主服务：`feature/web-main-service-integration`
+- iOS：`fix/ios-playback-sync-backup`
+
+这两个分支的备份恢复路径已经统一为 `/api/backups...`，本项目保留 `/api/v1/backups...` 作为更通用的源服务器 API，同时兼容 `/api/backups...` 给 iOS 当前实现使用。

@@ -86,6 +86,15 @@ Public:
 - `POST /api/v1/backups`
 - `GET /api/v1/backups/{id}`
 - `POST /api/v1/backups/{id}/restore-request`
+- `POST /api/backups` for the current iOS backup package shape.
+- `GET /api/backups/{id}` for the current iOS backup package shape.
+
+Compatibility restore endpoints:
+
+- `POST /api/backups/restore`
+- `GET /api/backups/restore/status/{job_id}`
+
+These compatibility restore endpoints intentionally do not mutate machine config in this public update service. Real config writes and restarts belong in the current `bililive-go-UI` server or local admin tool. The checked `bililive-go-UI` branch `feature/web-main-service-integration` implements that local restore flow in `src/servers/backup_handler.go`.
 
 Admin, requiring `Authorization: Bearer <BLSU_ADMIN_TOKEN>`:
 
@@ -163,4 +172,3 @@ If GitHub remote or credentials are unavailable, add the issue text to `docs/iss
 - Avoid adding databases unless the JSON store becomes a clear bottleneck.
 - Keep install and restore APIs explicit; do not let this public update server directly mutate a user's bililive machine.
 - Real machine mutations belong in `bililive-go-UI` local/admin APIs and should be documented here instead of implemented here.
-

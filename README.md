@@ -37,6 +37,7 @@ BLSU_GITHUB_REPO=xuyuanzhang1122/bililive-go-UI
 - `POST /api/v1/backups`
 - `GET /api/v1/backups/{id}`
 - `POST /api/v1/backups/{id}/restore-request`
+- `POST /api/backups`，兼容 iOS 当前备份包上传
+- `GET /api/backups/{id}`，兼容 iOS 当前备份包找回
 
 完整请求/响应见 [docs/api-contract.md](/Users/xu/Documents/GitHub/bililive-server-update/docs/api-contract.md)。
-

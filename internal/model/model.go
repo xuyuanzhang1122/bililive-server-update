@@ -123,6 +123,32 @@ type BackupLiveRoom struct {
 	Scheme      string `json:"scheme,omitempty"`
 }
 
+type IOSBackupPackage struct {
+	SchemaVersion int             `json:"schemaVersion"`
+	ExportedAt    time.Time       `json:"exportedAt"`
+	IOSConfig     IOSBackupConfig `json:"iosConfig"`
+	Server        IOSServerConfig `json:"server"`
+}
+
+type IOSBackupConfig struct {
+	ServerURL         string `json:"serverURL,omitempty"`
+	LanURL            string `json:"lanURL,omitempty"`
+	PublicURL         string `json:"publicURL,omitempty"`
+	AutoSwitchNetwork bool   `json:"autoSwitchNetwork"`
+}
+
+type IOSServerConfig struct {
+	RPCBind     string           `json:"rpc_bind"`
+	OutputPath  string           `json:"out_put_path"`
+	AppDataPath string           `json:"app_data_path"`
+	LiveRooms   []BackupLiveRoom `json:"live_rooms"`
+}
+
+type BackupCreateResponse struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type RestoreRequest struct {
 	TargetServerURL string `json:"target_server_url,omitempty"`
 	DryRun          bool   `json:"dry_run"`

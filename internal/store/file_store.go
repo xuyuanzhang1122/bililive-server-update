@@ -29,6 +29,9 @@ func NewFileStore(root string) (*FileStore, error) {
 	if err := os.MkdirAll(filepath.Join(root, "backups"), 0755); err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(filepath.Join(root, "ios-backups"), 0755); err != nil {
+		return nil, err
+	}
 	store := &FileStore{root: root}
 	if _, err := os.Stat(store.catalogPath()); errors.Is(err, os.ErrNotExist) {
 		if err := store.SaveCatalog(defaultCatalog()); err != nil {
@@ -98,12 +101,51 @@ func (s *FileStore) LoadBackup(id string) (model.BackupBundle, error) {
 	return bundle, nil
 }
 
+func (s *FileStore) SaveIOSBackup(pkg model.IOSBackupPackage) (string, time.Time, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if err := validateIOSBackup(pkg); err != nil {
+		return "", time.Time{}, err
+	}
+	id := newIOSBackupID()
+	if pkg.ExportedAt.IsZero() {
+		pkg.ExportedAt = time.Now().UTC()
+	}
+	if err := writeJSONAtomic(s.iosBackupPath(id), pkg); err != nil {
+		return "", time.Time{}, err
+	}
+	return id, pkg.ExportedAt, nil
+}
+
+func (s *FileStore) LoadIOSBackup(id string) (model.IOSBackupPackage, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	id = cleanID(id)
+	if id == "" {
+		return model.IOSBackupPackage{}, ErrNotFound
+	}
+	var pkg model.IOSBackupPackage
+	if err := readJSON(s.iosBackupPath(id), &pkg); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return model.IOSBackupPackage{}, ErrNotFound
+		}
+		return model.IOSBackupPackage{}, err
+	}
+	return pkg, nil
+}
+
 func (s *FileStore) catalogPath() string {
 	return filepath.Join(s.root, "catalog.json")
 }
 
 func (s *FileStore) backupPath(id string) string {
 	return filepath.Join(s.root, "backups", cleanID(id)+".json")
+}
+
+func (s *FileStore) iosBackupPath(id string) string {
+	return filepath.Join(s.root, "ios-backups", cleanID(id)+".json")
 }
 
 func defaultCatalog() model.Catalog {
@@ -149,6 +191,28 @@ func validateBackup(bundle model.BackupBundle) error {
 	return nil
 }
 
+func validateIOSBackup(pkg model.IOSBackupPackage) error {
+	if pkg.SchemaVersion != 1 {
+		return fmt.Errorf("unsupported schemaVersion: %d", pkg.SchemaVersion)
+	}
+	if strings.TrimSpace(pkg.Server.RPCBind) == "" {
+		return fmt.Errorf("server.rpc_bind 不能为空")
+	}
+	if strings.TrimSpace(pkg.Server.OutputPath) == "" {
+		return fmt.Errorf("server.out_put_path 不能为空")
+	}
+	if strings.TrimSpace(pkg.Server.AppDataPath) == "" {
+		return fmt.Errorf("server.app_data_path 不能为空")
+	}
+	for _, room := range pkg.Server.LiveRooms {
+		if !strings.HasPrefix(strings.TrimSpace(room.URL), "http://") &&
+			!strings.HasPrefix(strings.TrimSpace(room.URL), "https://") {
+			return fmt.Errorf("直播间 URL 非法: %s", room.URL)
+		}
+	}
+	return nil
+}
+
 func readJSON(path string, target any) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -181,11 +245,15 @@ func newBackupID() string {
 	return strings.ToLower(encoded)
 }
 
+func newIOSBackupID() string {
+	return "bgo_" + time.Now().UTC().Format("20060102") + "_" + newBackupID()
+}
+
 func cleanID(id string) string {
 	id = strings.ToLower(strings.TrimSpace(id))
 	var b strings.Builder
 	for _, r := range id {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
 			b.WriteRune(r)
 		}
 	}
