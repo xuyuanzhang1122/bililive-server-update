@@ -32,6 +32,12 @@ func NewFileStore(root string) (*FileStore, error) {
 	if err := os.MkdirAll(filepath.Join(root, "ios-backups"), 0755); err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(filepath.Join(root, "artifacts", "releases"), 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Join(root, "artifacts", "tools"), 0755); err != nil {
+		return nil, err
+	}
 	store := &FileStore{root: root}
 	if _, err := os.Stat(store.catalogPath()); errors.Is(err, os.ErrNotExist) {
 		if err := store.SaveCatalog(defaultCatalog()); err != nil {
@@ -134,6 +140,11 @@ func (s *FileStore) LoadIOSBackup(id string) (model.IOSBackupPackage, error) {
 		return model.IOSBackupPackage{}, err
 	}
 	return pkg, nil
+}
+
+// ArtifactsDir 返回制品根目录（镜像的 release 资产与工具二进制都放这里）
+func (s *FileStore) ArtifactsDir() string {
+	return filepath.Join(s.root, "artifacts")
 }
 
 func (s *FileStore) catalogPath() string {
