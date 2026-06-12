@@ -31,6 +31,7 @@ func New(cfg config.Config, fileStore *store.FileStore) http.Handler {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /", s.serveWebUI)
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /install.sh", s.installShell)
 	s.mux.HandleFunc("GET /install.ps1", s.installPowerShell)
@@ -42,6 +43,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/v1/catalog/tools", s.replaceTools)
 	s.mux.HandleFunc("PUT /api/v1/tools/{name}", s.uploadTool)
 	s.mux.Handle("GET /artifacts/", s.serveArtifacts())
+	s.mux.HandleFunc("GET /api/v1/backups", s.listBackups)
 	s.mux.HandleFunc("POST /api/v1/backups", s.createBackup)
 	s.mux.HandleFunc("GET /api/v1/backups/{id}", s.getBackup)
 	s.mux.HandleFunc("POST /api/v1/backups/{id}/restore-request", s.restoreRequest)
