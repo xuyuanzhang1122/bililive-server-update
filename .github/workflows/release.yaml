@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build binaries
+        run: |
+          mkdir -p bin
+          for target in "linux amd64" "linux arm64" "darwin amd64" "darwin arm64"; do
+            set -- $target
+            GOOS=$1 GOARCH=$2 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" \
+              -o "bin/bililive-server-update-$1-$2" ./cmd/server
+            tar czf "bin/bililive-server-update-$1-$2.tar.gz" -C bin "bililive-server-update-$1-$2"
+            rm "bin/bililive-server-update-$1-$2"
+          done
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" \
+            -o "bin/bililive-server-update-windows-amd64.exe" ./cmd/server
+          (cd bin && zip -q bililive-server-update-windows-amd64.zip bililive-server-update-windows-amd64.exe && rm bililive-server-update-windows-amd64.exe)
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/*.tar.gz
+            bin/*.zip
+          generate_release_notes: true

@@ -31,6 +31,7 @@ func New(cfg config.Config, fileStore *store.FileStore) http.Handler {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /", s.serveWebUI)
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /install.sh", s.installShell)
 	s.mux.HandleFunc("GET /install.ps1", s.installPowerShell)
@@ -40,6 +41,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/catalog/sync-github", s.syncGitHubCatalog)
 	s.mux.HandleFunc("PUT /api/v1/catalog/releases", s.replaceReleases)
 	s.mux.HandleFunc("PUT /api/v1/catalog/tools", s.replaceTools)
+	s.mux.HandleFunc("PUT /api/v1/tools/{name}", s.uploadTool)
+	s.mux.Handle("GET /artifacts/", s.serveArtifacts())
+	s.mux.HandleFunc("GET /api/v1/backups", s.listBackups)
 	s.mux.HandleFunc("POST /api/v1/backups", s.createBackup)
 	s.mux.HandleFunc("GET /api/v1/backups/{id}", s.getBackup)
 	s.mux.HandleFunc("POST /api/v1/backups/{id}/restore-request", s.restoreRequest)
@@ -149,6 +153,20 @@ func (s *Server) syncGitHubCatalog(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
+	// 默认把资产镜像到本站（仅保留最新版本），?mirror=false 时只更新元数据
+	if r.URL.Query().Get("mirror") != "false" {
+		mirrored, err := s.mirrorReleaseAssets(r.Context(), release)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		release = mirrored
+	}
+	// 顺带刷新安装脚本缓存，保证 /install.sh 提供的是仓库最新版
+	if err := s.refreshInstallScripts(r.Context()); err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
 	catalog, err := s.store.LoadCatalog()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -156,7 +174,7 @@ func (s *Server) syncGitHubCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	next := catalog.Releases[:0]
 	for _, item := range catalog.Releases {
-		if item.Source != "github" {
+		if item.Source != "github" && item.Source != "mirror" {
 			next = append(next, item)
 		}
 	}
@@ -336,29 +354,11 @@ func (s *Server) restoreIOSBackupStatus(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) installShell(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
-	base := publicBaseURL(s.cfg, r)
-	_, _ = fmt.Fprintf(w, `#!/usr/bin/env sh
-set -eu
-BASE_URL="${BILILIVE_UPDATE_SERVER:-%s}"
-echo "bililive-go-UI unified installer"
-echo "Fetching manifest from ${BASE_URL}/api/v1/install/manifest"
-curl -fsSL "${BASE_URL}/api/v1/install/manifest" >/tmp/bililive-install-manifest.json
-echo "Manifest saved to /tmp/bililive-install-manifest.json"
-echo "Next installer step should detect OS, previous video path, source, install mode, tools, port, then run doctor."
-`, base)
+	s.serveInstallScript(w, r, "install.sh", "text/x-shellscript; charset=utf-8")
 }
 
 func (s *Server) installPowerShell(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	base := publicBaseURL(s.cfg, r)
-	_, _ = fmt.Fprintf(w, `$BaseUrl = $env:BILILIVE_UPDATE_SERVER
-if ([string]::IsNullOrWhiteSpace($BaseUrl)) { $BaseUrl = "%s" }
-Write-Host "bililive-go-UI unified installer"
-Write-Host "Fetching manifest from $BaseUrl/api/v1/install/manifest"
-Invoke-RestMethod "$BaseUrl/api/v1/install/manifest" | ConvertTo-Json -Depth 20 | Set-Content "$env:TEMP\bililive-install-manifest.json"
-Write-Host "Manifest saved to $env:TEMP\bililive-install-manifest.json"
-`, base)
+	s.serveInstallScript(w, r, "install.ps1", "text/plain; charset=utf-8")
 }
 
 func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {

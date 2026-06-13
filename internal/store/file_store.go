@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,12 @@ func NewFileStore(root string) (*FileStore, error) {
 		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Join(root, "ios-backups"), 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Join(root, "artifacts", "releases"), 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Join(root, "artifacts", "tools"), 0755); err != nil {
 		return nil, err
 	}
 	store := &FileStore{root: root}
@@ -134,6 +141,52 @@ func (s *FileStore) LoadIOSBackup(id string) (model.IOSBackupPackage, error) {
 		return model.IOSBackupPackage{}, err
 	}
 	return pkg, nil
+}
+
+// BackupSummary 备份摘要（管理界面列表用，不含包体）
+type BackupSummary struct {
+	ID        string    `json:"id"`
+	Kind      string    `json:"kind"` // bundle | ios
+	CreatedAt time.Time `json:"created_at"`
+	Size      int64     `json:"size"`
+}
+
+// ListBackups 列出全部备份摘要（含 v1 bundle 与 iOS 包）
+func (s *FileStore) ListBackups() ([]BackupSummary, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := []BackupSummary{}
+	collect := func(dir, kind string) {
+		entries, err := os.ReadDir(filepath.Join(s.root, dir))
+		if err != nil {
+			return
+		}
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+				continue
+			}
+			info, err := e.Info()
+			if err != nil {
+				continue
+			}
+			out = append(out, BackupSummary{
+				ID:        strings.TrimSuffix(e.Name(), ".json"),
+				Kind:      kind,
+				CreatedAt: info.ModTime().UTC(),
+				Size:      info.Size(),
+			})
+		}
+	}
+	collect("backups", "bundle")
+	collect("ios-backups", "ios")
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return out, nil
+}
+
+// ArtifactsDir 返回制品根目录（镜像的 release 资产与工具二进制都放这里）
+func (s *FileStore) ArtifactsDir() string {
+	return filepath.Join(s.root, "artifacts")
 }
 
 func (s *FileStore) catalogPath() string {
