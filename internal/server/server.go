@@ -43,6 +43,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/v1/catalog/tools", s.replaceTools)
 	s.mux.HandleFunc("PUT /api/v1/tools/{name}", s.uploadTool)
 	s.mux.Handle("GET /artifacts/", s.serveArtifacts())
+	s.mux.HandleFunc("GET /remotetools/download", s.remotetoolsDownload)
 	s.mux.HandleFunc("GET /api/v1/backups", s.listBackups)
 	s.mux.HandleFunc("POST /api/v1/backups", s.createBackup)
 	s.mux.HandleFunc("GET /api/v1/backups/{id}", s.getBackup)
