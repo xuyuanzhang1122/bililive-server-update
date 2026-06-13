@@ -7,35 +7,59 @@
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; background: #f5f6f8; color: #1f2329; }
-  @media (prefers-color-scheme: dark) { body { background: #16181d; color: #e8eaed; } .card { background: #1f2329 !important; } input, select { background: #16181d; color: #e8eaed; border-color: #3a3f47 !important; } th { background: #262a31 !important; } }
-  header { background: #1764d9; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; background: #0d0e12; color: #e8eaed; }
+  a { color: #ff7a45; }
+  header { background: linear-gradient(120deg,#1a1c24,#15161c); border-bottom: 1px solid #26282f; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
   header h1 { margin: 0; font-size: 18px; }
   main { max-width: 1080px; margin: 24px auto; padding: 0 16px; display: grid; gap: 16px; }
-  .card { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card { background: #15161c; border: 1px solid #26282f; border-radius: 12px; padding: 18px 20px; }
   .card h2 { margin: 0 0 12px; font-size: 15px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid rgba(127,127,127,.18); word-break: break-all; }
-  th { background: #f0f2f5; font-weight: 600; }
-  button { background: #1764d9; color: #fff; border: 0; border-radius: 6px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
-  button:hover { opacity: .9; } button:disabled { opacity: .5; cursor: not-allowed; }
-  button.ghost { background: transparent; color: #1764d9; border: 1px solid #1764d9; }
-  input, select { border: 1px solid #d4d7dd; border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #23252c; word-break: break-all; }
+  th { background: #1b1d25; font-weight: 600; }
+  button { background: linear-gradient(120deg,#ff6a2b,#ff8f4d); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 600; transition: transform .1s, opacity .2s; }
+  button:hover { opacity: .92; } button:active { transform: scale(.97); } button:disabled { opacity: .45; cursor: not-allowed; }
+  button.ghost { background: transparent; color: #ff7a45; border: 1px solid #ff7a45; }
+  input, select { border: 1px solid #2e3038; border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #0d0e12; color: #e8eaed; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .muted { color: #8a9099; font-size: 12px; }
-  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: rgba(23,100,217,.12); color: #1764d9; }
-  .ok { color: #18a058; } .err { color: #d03050; }
-  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; background: rgba(255,122,69,.16); color: #ff9b6b; }
+  .ok { color: #43d17a; } .err { color: #ff5b6e; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #23252c; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; border: 1px solid #33353d; }
   #toast.show { opacity: 1; }
+  /* 登录遮罩 */
+  #login { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a1c24, #0a0b0e); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  #login .box { width: 320px; background: #15161c; border: 1px solid #26282f; border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes pop { from { transform: translateY(12px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  #login h2 { margin: 0 0 4px; font-size: 19px; }
+  #login p { margin: 0 0 18px; color: #8a9099; font-size: 13px; }
+  #login input { width: 100%; margin-bottom: 10px; }
+  #login button { width: 100%; margin-top: 6px; padding: 11px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
+
+<div id="login">
+  <div class="box">
+    <h2>🔥 源站管理</h2>
+    <p>请登录以管理发布版本、工具与备份</p>
+    <form onsubmit="doLogin(event)">
+      <input id="u" placeholder="用户名" autocomplete="username" autofocus>
+      <input id="p" type="password" placeholder="密码" autocomplete="current-password">
+      <div id="loginErr" class="err" style="font-size:12px;min-height:16px"></div>
+      <button type="submit" id="loginBtn">登录</button>
+    </form>
+  </div>
+</div>
+
+<div id="app" class="hidden">
 <header>
-  <h1>bililive 源站管理</h1>
+  <h1>🔥 bililive 源站管理</h1>
   <div class="row">
     <span id="health" class="muted">…</span>
-    <input id="token" type="password" placeholder="Admin Token" style="width:180px">
-    <button class="ghost" style="border-color:#fff;color:#fff" onclick="saveToken()">保存</button>
+    <a href="/" class="muted" style="text-decoration:none">← 返回首页</a>
+    <button class="ghost" onclick="doLogout()">退出登录</button>
   </div>
 </header>
 <main>
@@ -44,7 +68,7 @@
     <div class="row" style="margin-bottom:10px">
       <button id="syncBtn" onclick="syncGitHub(true)">同步 GitHub 并镜像资产</button>
       <button class="ghost" onclick="syncGitHub(false)">仅更新元数据</button>
-      <span class="muted">镜像会下载最新 Release 全部资产，仅保留最新版本，并刷新安装脚本缓存</span>
+      <span class="muted">下载最新 Release 全部资产，仅保留最新版本，并刷新安装脚本缓存</span>
     </div>
     <table>
       <thead><tr><th>文件</th><th>版本</th><th>OS/Arch</th><th>来源</th><th>大小</th><th>下载</th></tr></thead>
@@ -58,7 +82,7 @@
       <select id="toolName"><option value="ffmpeg">ffmpeg</option><option value="headless-browser">headless-browser</option></select>
       <select id="toolOS"><option>linux</option><option>darwin</option><option>windows</option></select>
       <select id="toolArch"><option>amd64</option><option>arm64</option><option>arm</option></select>
-      <input id="toolVersion" placeholder="版本（如 7.0）" style="width:110px">
+      <input id="toolVersion" placeholder="版本（如 8.1）" style="width:110px">
       <input id="toolFile" type="file" required>
       <button id="uploadBtn" type="submit">上传</button>
     </form>
@@ -72,132 +96,112 @@
     <h2>备份存储</h2>
     <div class="row" style="margin-bottom:10px">
       <button class="ghost" onclick="loadBackups()">刷新列表</button>
-      <span class="muted">需要 Admin Token；恢复操作由 bililive-go 服务器/iOS 端发起，这里只读</span>
+      <span class="muted">恢复操作由 bililive-go 服务器 / iOS 端发起，这里只读</span>
     </div>
     <table>
       <thead><tr><th>备份 ID</th><th>类型</th><th>创建时间</th><th>大小</th></tr></thead>
-      <tbody id="backups"><tr><td colspan="4" class="muted">点击"刷新列表"加载（需 Token）</td></tr></tbody>
+      <tbody id="backups"><tr><td colspan="4" class="muted">点击"刷新列表"加载</td></tr></tbody>
     </table>
   </div>
 
   <div class="card">
     <h2>安装入口</h2>
     <p style="font-size:13px">Linux / macOS：</p>
-    <pre id="curlCmd" style="background:rgba(127,127,127,.12);padding:10px;border-radius:6px;font-size:12px;overflow-x:auto"></pre>
+    <pre id="curlCmd" style="background:#0d0e12;border:1px solid #26282f;padding:10px;border-radius:8px;font-size:12px;overflow-x:auto"></pre>
     <p style="font-size:13px">Windows（PowerShell）：</p>
-    <pre id="psCmd" style="background:rgba(127,127,127,.12);padding:10px;border-radius:6px;font-size:12px;overflow-x:auto"></pre>
+    <pre id="psCmd" style="background:#0d0e12;border:1px solid #26282f;padding:10px;border-radius:8px;font-size:12px;overflow-x:auto"></pre>
   </div>
 </main>
+</div>
+
 <div id="toast"></div>
 <script>
 const $ = id => document.getElementById(id);
-const token = () => localStorage.getItem('blsu_token') || '';
-$('token').value = token();
-
-function saveToken() {
-  localStorage.setItem('blsu_token', $('token').value.trim());
-  toast('Token 已保存到本地');
-}
 function toast(msg, isErr) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.style.background = isErr ? '#d03050' : '#333';
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2600);
+  const t = $('toast'); t.textContent = msg;
+  t.style.borderColor = isErr ? '#ff5b6e' : '#33353d';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2600);
 }
-function fmtSize(n) {
-  if (!n) return '-';
-  if (n > 1 << 30) return (n / (1 << 30)).toFixed(2) + ' GB';
-  if (n > 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB';
-  if (n > 1 << 10) return (n / (1 << 10)).toFixed(1) + ' KB';
-  return n + ' B';
-}
-function fmtTime(s) { return s ? new Date(s).toLocaleString() : '-'; }
-function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function fmtSize(n){ if(!n)return'-'; if(n>1<<30)return(n/(1<<30)).toFixed(2)+' GB'; if(n>1<<20)return(n/(1<<20)).toFixed(1)+' MB'; if(n>1<<10)return(n/(1<<10)).toFixed(1)+' KB'; return n+' B'; }
+function fmtTime(s){ return s? new Date(s).toLocaleString() : '-'; }
+function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
 
-async function loadHealth() {
-  try {
-    await fetch('/health').then(r => r.json());
-    $('health').innerHTML = '<span class="ok">● 服务正常</span>';
-  } catch { $('health').innerHTML = '<span class="err">● 服务异常</span>'; }
+async function checkAuth() {
+  const r = await fetch('/api/admin/me');
+  if (r.ok) { showApp(); } else { $('login').classList.remove('hidden'); $('app').classList.add('hidden'); }
 }
+function showApp() {
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  loadHealth(); loadCatalog().catch(e => toast('catalog 加载失败: '+e.message, true));
+}
+async function doLogin(ev) {
+  ev.preventDefault();
+  $('loginErr').textContent = ''; $('loginBtn').disabled = true; $('loginBtn').textContent = '登录中…';
+  try {
+    const r = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username: $('u').value, password: $('p').value }) });
+    if (!r.ok) throw new Error((await r.json()).error || '登录失败');
+    showApp();
+  } catch(e){ $('loginErr').textContent = e.message; }
+  $('loginBtn').disabled = false; $('loginBtn').textContent = '登录';
+}
+async function doLogout(){ await fetch('/api/admin/logout', {method:'POST'}); location.reload(); }
+
+async function loadHealth(){ try{ await fetch('/health').then(r=>r.json()); $('health').innerHTML='<span class="ok">● 服务正常</span>'; }catch{ $('health').innerHTML='<span class="err">● 服务异常</span>'; } }
 
 async function loadCatalog() {
-  const c = await fetch('/api/v1/catalog').then(r => r.json());
+  const c = await fetch('/api/v1/catalog').then(r=>r.json());
   $('catalogUpdated').textContent = '更新于 ' + fmtTime(c.updated_at);
-  const rel = (c.releases || []);
-  $('releases').innerHTML = rel.length ? rel.map(r => `<tr>
+  const rel = (c.releases||[]);
+  $('releases').innerHTML = rel.length ? rel.map(r=>`<tr>
       <td>${esc(r.name)}</td><td><span class="tag">${esc(r.version)}</span></td>
-      <td>${esc(r.os || '-')}/${esc(r.arch || '-')}</td><td>${esc(r.source)}</td>
-      <td>${fmtSize(r.size)}</td>
-      <td>${r.url ? `<a href="${esc(r.url)}">下载</a>` : '-'}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="muted">暂无，先同步 GitHub</td></tr>';
-  const tools = (c.tools || []).filter(t => t.url);
-  $('tools').innerHTML = tools.length ? tools.map(t => `<tr>
+      <td>${esc(r.os||'-')}/${esc(r.arch||'-')}</td><td>${esc(r.source)}</td>
+      <td>${fmtSize(r.size)}</td><td>${r.url?`<a href="${esc(r.url)}">下载</a>`:'-'}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="muted">暂无，先同步 GitHub</td></tr>';
+  const tools = (c.tools||[]).filter(t=>t.url);
+  $('tools').innerHTML = tools.length ? tools.map(t=>`<tr>
       <td>${esc(t.name)}</td><td><span class="tag">${esc(t.version)}</span></td>
       <td>${esc(t.os)}/${esc(t.arch)}</td><td>${fmtTime(t.updated_at)}</td>
-      <td><a href="${esc(t.url)}">下载</a></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="muted">暂无已上传的工具</td></tr>';
+      <td><a href="${esc(t.url)}">下载</a></td></tr>`).join('')
+    : '<tr><td colspan="5" class="muted">暂无已上传的工具</td></tr>';
 }
-
 async function syncGitHub(mirror) {
-  if (!token()) { toast('请先填写 Admin Token', true); return; }
-  $('syncBtn').disabled = true;
-  $('syncBtn').textContent = '同步中…（镜像下载可能需要几分钟）';
+  $('syncBtn').disabled = true; $('syncBtn').textContent = '同步中…（镜像下载可能需要几分钟）';
   try {
-    const r = await fetch('/api/v1/catalog/sync-github' + (mirror ? '' : '?mirror=false'), {
-      method: 'POST', headers: { Authorization: 'Bearer ' + token() }
-    });
+    const r = await fetch('/api/v1/catalog/sync-github'+(mirror?'':'?mirror=false'), { method:'POST' });
     if (!r.ok) throw new Error((await r.json()).error || r.status);
-    toast('同步完成');
-    await loadCatalog();
-  } catch (e) { toast('同步失败: ' + e.message, true); }
-  $('syncBtn').disabled = false;
-  $('syncBtn').textContent = '同步 GitHub 并镜像资产';
+    toast('同步完成'); await loadCatalog();
+  } catch(e){ toast('同步失败: '+e.message, true); }
+  $('syncBtn').disabled = false; $('syncBtn').textContent = '同步 GitHub 并镜像资产';
 }
-
 async function uploadTool(ev) {
   ev.preventDefault();
-  if (!token()) { toast('请先填写 Admin Token', true); return; }
-  const file = $('toolFile').files[0];
-  if (!file) return;
-  const params = new URLSearchParams({
-    os: $('toolOS').value, arch: $('toolArch').value,
-    version: $('toolVersion').value || 'stable', filename: file.name
-  });
-  $('uploadBtn').disabled = true;
-  $('uploadBtn').textContent = '上传中…';
+  const file = $('toolFile').files[0]; if (!file) return;
+  const params = new URLSearchParams({ os:$('toolOS').value, arch:$('toolArch').value, version:$('toolVersion').value||'stable', filename:file.name });
+  $('uploadBtn').disabled = true; $('uploadBtn').textContent = '上传中…';
   try {
-    const r = await fetch(`/api/v1/tools/${$('toolName').value}?${params}`, {
-      method: 'PUT', headers: { Authorization: 'Bearer ' + token() }, body: file
-    });
+    const r = await fetch(`/api/v1/tools/${$('toolName').value}?${params}`, { method:'PUT', body:file });
     if (!r.ok) throw new Error((await r.json()).error || r.status);
-    toast('工具已上传');
-    await loadCatalog();
-  } catch (e) { toast('上传失败: ' + e.message, true); }
-  $('uploadBtn').disabled = false;
-  $('uploadBtn').textContent = '上传';
+    toast('工具已上传'); await loadCatalog();
+  } catch(e){ toast('上传失败: '+e.message, true); }
+  $('uploadBtn').disabled = false; $('uploadBtn').textContent = '上传';
 }
-
 async function loadBackups() {
-  if (!token()) { toast('请先填写 Admin Token', true); return; }
   try {
-    const r = await fetch('/api/v1/backups', { headers: { Authorization: 'Bearer ' + token() } });
+    const r = await fetch('/api/v1/backups');
     if (!r.ok) throw new Error((await r.json()).error || r.status);
     const list = await r.json();
-    $('backups').innerHTML = list.length ? list.map(b => `<tr>
+    $('backups').innerHTML = list.length ? list.map(b=>`<tr>
         <td>${esc(b.id)}</td><td><span class="tag">${esc(b.kind)}</span></td>
-        <td>${fmtTime(b.created_at)}</td><td>${fmtSize(b.size)}</td>
-      </tr>`).join('') : '<tr><td colspan="4" class="muted">暂无备份</td></tr>';
-  } catch (e) { toast('加载失败: ' + e.message, true); }
+        <td>${fmtTime(b.created_at)}</td><td>${fmtSize(b.size)}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="muted">暂无备份</td></tr>';
+  } catch(e){ toast('加载失败: '+e.message, true); }
 }
 
 const base = location.origin;
 $('curlCmd').textContent = `curl -fsSL ${base}/install.sh | bash`;
 $('psCmd').textContent = `irm ${base}/install.ps1 | iex`;
-
-loadHealth();
-loadCatalog().catch(e => toast('catalog 加载失败: ' + e.message, true));
+checkAuth();
 </script>
 </body>
 </html>

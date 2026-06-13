@@ -5,16 +5,25 @@ import (
 	"net/http"
 )
 
-//go:embed webui/index.html
+//go:embed webui/index.html webui/landing.html
 var webuiFS embed.FS
 
-// serveWebUI 提供内嵌的管理界面
-func (s *Server) serveWebUI(w http.ResponseWriter, r *http.Request) {
+// serveLanding 提供公开的三项目介绍落地页
+func (s *Server) serveLanding(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := webuiFS.ReadFile("webui/index.html")
+	s.serveEmbedded(w, "webui/landing.html")
+}
+
+// serveAdmin 提供管理界面（页面自身通过 /api/admin/me 判断登录态）
+func (s *Server) serveAdmin(w http.ResponseWriter, _ *http.Request) {
+	s.serveEmbedded(w, "webui/index.html")
+}
+
+func (s *Server) serveEmbedded(w http.ResponseWriter, name string) {
+	data, err := webuiFS.ReadFile(name)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return

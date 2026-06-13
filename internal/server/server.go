@@ -31,7 +31,11 @@ func New(cfg config.Config, fileStore *store.FileStore) http.Handler {
 }
 
 func (s *Server) routes() {
-	s.mux.HandleFunc("GET /", s.serveWebUI)
+	s.mux.HandleFunc("GET /", s.serveLanding)
+	s.mux.HandleFunc("GET /admin", s.serveAdmin)
+	s.mux.HandleFunc("POST /api/admin/login", s.adminLogin)
+	s.mux.HandleFunc("POST /api/admin/logout", s.adminLogout)
+	s.mux.HandleFunc("GET /api/admin/me", s.adminMe)
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /install.sh", s.installShell)
 	s.mux.HandleFunc("GET /install.ps1", s.installPowerShell)
@@ -363,17 +367,20 @@ func (s *Server) installPowerShell(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
-	if strings.TrimSpace(s.cfg.AdminToken) == "" {
-		writeError(w, http.StatusForbidden, fmt.Errorf("BLSU_ADMIN_TOKEN 未配置"))
-		return false
+	// 浏览器走登录会话 cookie
+	if s.hasValidSession(r) {
+		return true
 	}
-	const prefix = "Bearer "
-	auth := r.Header.Get("Authorization")
-	if !strings.HasPrefix(auth, prefix) || strings.TrimSpace(strings.TrimPrefix(auth, prefix)) != s.cfg.AdminToken {
-		writeError(w, http.StatusUnauthorized, fmt.Errorf("admin token 无效"))
-		return false
+	// 脚本 / 自动化走 Bearer admin token
+	if strings.TrimSpace(s.cfg.AdminToken) != "" {
+		const prefix = "Bearer "
+		auth := r.Header.Get("Authorization")
+		if strings.HasPrefix(auth, prefix) && strings.TrimSpace(strings.TrimPrefix(auth, prefix)) == s.cfg.AdminToken {
+			return true
+		}
 	}
-	return true
+	writeError(w, http.StatusUnauthorized, fmt.Errorf("需要登录或有效的 admin token"))
+	return false
 }
 
 func publicBaseURL(cfg config.Config, r *http.Request) string {
